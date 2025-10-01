@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 자산 관리</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(to top right, #f2f4f6, #d8e2ec, #b0c4de);
+            min-height: 100vh; padding: 20px; color: #333;
+        }
+        .container { 
+            max-width: 1200px; /* 최대 너비 확장 */
+            margin: 0 auto; display: flex; flex-direction: column; gap: 20px; 
+        }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; font-size: 2.5em; font-weight: 700; }
+        .card {
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px; padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+        h3 {
+            font-size: 1.5em; font-weight: 700; margin-bottom: 20px; color: #2c3e50;
+            border-left: 4px solid #6a89cc; padding-left: 10px;
+        }
+        .income-section h3 { border-left-color: #55b86a; }
+        .form-group { margin-bottom: 20px; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 12px;
+            font-size: 16px; background: #fdfdfd;
+        }
+        .btn {
+            background: linear-gradient(135deg, #5b86e5 0%, #36d1dc 100%);
+            color: white; padding: 14px 30px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer; width: 100%;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .btn.income-btn { background: linear-gradient(135deg, #28b485 0%, #8de063 100%); }
+
+        /* Monthly Summary Section */
+        .summary-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 25px; text-align: center; }
+        .summary-item { padding: 15px; border-radius: 15px; }
+        .summary-item .label { font-size: 0.9em; margin-bottom: 8px; opacity: 0.9; }
+        .summary-item .amount { font-size: 1.8em; font-weight: 700; letter-spacing: 1px; }
+        .summary-income { background: rgba(85, 184, 106, 0.1); color: #3b7b21; }
+        .summary-expense { background: rgba(231, 76, 60, 0.1); color: #a52a2a; }
+        .summary-total { background: #fff; padding: 20px; border-top: 2px solid #f0f0f0; }
+        .summary-total .amount { font-size: 2.2em; }
+
+        /* NEW Main Layout Grid */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr; /* Mobile-first: single column */
+            gap: 20px;
+        }
+
+        /* Desktop Layout: 2 columns */
+        @media (min-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 450px 1fr; /* Left column for inputs, Right for display */
+            }
+            .summary-section {
+                grid-template-columns: 1fr 1fr 2fr; /* Make total section wider */
+            }
+        }
+        .main-column { display: flex; flex-direction: column; gap: 20px; }
+        
+        /* List Item styles */
+        .list-item { background: #fdfdfd; padding: 18px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .item-info { flex-grow: 1; }
+        .item-category { font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .expense-item .item-category { color: #c0392b; }
+        .income-item .item-category { color: #27ae60; }
+        .item-description { color: #888; font-size: 14px; }
+        .item-amount { font-size: 1.2em; font-weight: 700; color: #333; }
+        .delete-btn { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; margin-left: 15px; }
+        .category-emoji { font-size: 1.2em; }
+        
+        /* General Layouts & Other styles */
+        .stats-content, .file-input { display: none; }
+        .stats-content.active { display: block; }
+        .data-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .budget-section .budget-input-group { display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center; }
+        .budget-section .budget-btn { background: linear-gradient(135deg, #34d399 0%, #20c997 100%); padding: 12px; }
+        .budget-status { background: #f0f7ff; border-left: 5px solid #4a90e2; padding: 25px; border-radius: 15px; }
+        .budget-status.over-budget { background: #fff0f0; border-left-color: #e74c3c; }
+        .budget-progress { background: #e9ecef; height: 12px; border-radius: 6px; margin: 15px 0; overflow: hidden; }
+        .budget-progress-bar { background: #4a90e2; height: 100%; border-radius: 6px; }
+        .budget-progress-bar.over-budget { background: #e74c3c; }
+        .budget-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: center; }
+        .budget-info-item { padding: 12px; background: #fafafa; border-radius: 10px; }
+        .budget-info-label { font-size: 0.8em; color: #666; }
+        .budget-info-value { font-size: 1.1em; font-weight: 600; }
+        .positive { color: #2980b9; }
+        .negative { color: #e74c3c; }
+        .stats-tabs { display: flex; background: #e9ecef; border-radius: 12px; padding: 5px; margin-bottom: 25px; }
+        .tab-btn { flex: 1; padding: 12px; background: none; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; color: #666; font-size: 15px; }
+        .tab-btn.active { background: linear-gradient(45deg, #4a90e2, #764ba2); color: white; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
+        .period-summary { display: flex; flex-direction: column; padding: 25px; border-radius: 20px; background: #fff; margin-bottom: 20px; }
+        .percentage-breakdown { display: flex; flex-direction: column; gap: 15px; }
+        .percentage-item { font-size: 0.95em; }
+        .percentage-item .info { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .percentage-item .percent { font-weight: 700; }
+        .progress-bar { background-color: #e9ecef; border-radius: 5px; height: 10px; overflow: hidden; }
+        .progress-bar-fill { background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%); height: 100%; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>나의 자산 관리</h1>
+
+        <div class="card summary-section">
+            <div class="summary-item summary-income"><div class="label">월간 총 수입</div><div class="amount" id="summaryIncome">0원</div></div>
+            <div class="summary-item summary-expense"><div class="label">월간 총 지출</div><div class="amount" id="summaryExpense">0원</div></div>
+            <div class="summary-item summary-total"><div class="label">합계</div><div class="amount" id="summaryTotal">0원</div></div>
+        </div>
+        
+        <div class="main-layout">
+            <div class="main-column" id="left-column">
+                <div class="card expense-section">
+                    <h3>지출 기록</h3>
+                    <div class="form-group"><input type="number" id="expenseAmount" placeholder="금액"></div>
+                    <div class="form-group">
+                        <select id="expenseCategory">
+                            <option value="식비">🍔 식비</option><option value="교통">🚌 교통</option><option value="학업">📚 학업</option>
+                            <option value="쇼핑">🛍️ 쇼핑</option><option value="동아리">🎪 동아리</option>
+                            <option value="카페">☕ 카페</option><option value="미용">💄 미용</option><option value="의료">🏥 의료</option>
+                            <option value="운동">💪 운동</option><option value="투자">📈 투자</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><input type="text" id="expenseDescription" placeholder="내용"></div>
+                    <button class="btn" onclick="addExpense()">지출 추가</button>
+                </div>
+
+                <div class="card income-section">
+                    <h3>수입 기록</h3>
+                    <div class="form-group"><input type="number" id="incomeAmount" placeholder="금액"></div>
+                    <div class="form-group">
+                        <select id="incomeCategory">
+                            <option value="월급">💼 월급</option><option value="용돈">💵 용돈</option><option value="부수입">📈 부수입</option>
+                            <option value="금융소득">🏦 금융소득</option><option value="기타">📎 기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><input type="text" id="incomeDescription" placeholder="내용"></div>
+                    <button class="btn income-btn" onclick="addIncome()">수입 추가</button>
+                </div>
+                
+                <div class="card budget-section">
+                    <h3>💰 월 예산 설정</h3>
+                    <div class="budget-input-group"><input type="number" id="budgetInput" placeholder="월 지출 예산 입력"><button class="btn budget-btn" onclick="setBudget()">설정</button></div>
+                </div>
+
+                <div class="card data-section">
+                    <h3>💾 데이터 관리</h3>
+                    <div class="data-buttons">
+                        <button class="btn" onclick="exportData()">📤 내보내기</button>
+                        <button class="btn" onclick="document.getElementById('fileInput').click()">📥 가져오기</button>
+                        <button class="btn" onclick="clearAllData()" style="background: #e74c3c;">🗑️ 모두 삭제</button>
+                        <button class="btn" onclick="saveToStorage()" style="background: #28a745;">💾 수동 저장</button>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".json" onchange="importData(event)">
+                    <div id="saveStatus" style="display:none; margin-top: 15px; padding: 10px; border-radius: 8px; text-align:center;"></div>
+                </div>
+            </div>
+
+            <div class="main-column" id="right-column">
+                <div id="budgetStatus" class="card budget-status" style="display: none;"></div>
+                <div class="card expense-list"><h3>📝 지출 내역 (이번 달)</h3><div id="expenseItems"></div></div>
+                <div class="card income-list"><h3>💰 수입 내역 (이번 달)</h3><div id="incomeItems"></div></div>
+                <div class="card stats-section">
+                    <h3>📊 지출 통계</h3>
+                    <div class="stats-tabs">
+                        <button class="tab-btn active" onclick="switchTab('weekly')">주간</button>
+                        <button class="tab-btn" onclick="switchTab('monthly')">월간</button>
+                        <button class="tab-btn" onclick="switchTab('comparison')">기간별 비교</button>
+                    </div>
+                    <div id="weekly-stats" class="stats-content active"></div>
+                    <div id="monthly-stats" class="stats-content"></div>
+                    <div id="comparison-stats" class="stats-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let expenses = [], incomes = [], monthlyBudget = 0;
+
+        const expenseEmojis = {'식비':'🍔','교통':'🚌','학업':'📚','쇼핑':'🛍️','동아리':'🎪','카페':'☕','미용':'💄','의료':'🏥','운동':'💪','투자':'📈'};
+        const incomeEmojis = {'월급':'💼','용돈':'💵','부수입':'📈','금융소득':'🏦','기타':'📎'};
+
+        function addExpense() {
+            const amount = document.getElementById('expenseAmount').value, category = document.getElementById('expenseCategory').value, description = document.getElementById('expenseDescription').value;
+            if (!amount || amount <= 0 || !description.trim()) { alert('금액과 내용을 올바르게 입력해주세요.'); return; }
+            expenses.push({ id: Date.now(), amount: parseInt(amount), category, description: description.trim(), dateObj: new Date() });
+            document.getElementById('expenseAmount').value = document.getElementById('expenseDescription').value = '';
+            updateAllAndSave();
+        }
+        function addIncome() {
+            const amount = document.getElementById('incomeAmount').value, category = document.getElementById('incomeCategory').value, description = document.getElementById('incomeDescription').value;
+            if (!amount || amount <= 0 || !description.trim()) { alert('금액과 내용을 올바르게 입력해주세요.'); return; }
+            incomes.push({ id: Date.now(), amount: parseInt(amount), category, description: description.trim(), dateObj: new Date() });
+            document.getElementById('incomeAmount').value = document.getElementById('incomeDescription').value = '';
+            updateAllAndSave();
+        }
+        function deleteExpense(id) { expenses = expenses.filter(e => e.id !== id); updateAllAndSave(); }
+        function deleteIncome(id) { incomes = incomes.filter(i => i.id !== id); updateAllAndSave(); }
+
+        function displayExpenses() {
+            const container = document.getElementById('expenseItems');
+            container.innerHTML = getMonthlyExpenses().sort((a,b) => b.dateObj - a.dateObj).map(e => `<div class="list-item expense-item"><div class="item-info"><div class="item-category"><span class="category-emoji">${expenseEmojis[e.category]}</span> ${e.category}</div><div class="item-description">${e.description} | ${e.dateObj.toLocaleDateString('ko-KR')}</div></div><div style="display: flex; align-items: center;"><div class="item-amount">${e.amount.toLocaleString()}원</div><button class="delete-btn" onclick="deleteExpense(${e.id})">삭제</button></div></div>`).join('') || '<p style="text-align:center;color:#888;padding:1rem 0;">이번 달 지출 내역이 없습니다.</p>';
+        }
+        function displayIncomes() {
+            const container = document.getElementById('incomeItems');
+            container.innerHTML = getMonthlyIncomes().sort((a,b) => b.dateObj - a.dateObj).map(i => `<div class="list-item income-item"><div class="item-info"><div class="item-category"><span class="category-emoji">${incomeEmojis[i.category]}</span> ${i.category}</div><div class="item-description">${i.description} | ${i.dateObj.toLocaleDateString('ko-KR')}</div></div><div style="display: flex; align-items: center;"><div class="item-amount">${i.amount.toLocaleString()}원</div><button class="delete-btn" onclick="deleteIncome(${i.id})">삭제</button></div></div>`).join('') || '<p style="text-align:center;color:#888;padding:1rem 0;">이번 달 수입 내역이 없습니다.</p>';
+        }
+        
+        function updateMonthlySummary() {
+            const totalIncome = getMonthlyIncomes().reduce((s, i) => s + i.amount, 0);
+            const totalExpense = getMonthlyExpenses().reduce((s, e) => s + e.amount, 0);
+            const net = totalIncome - totalExpense;
+            document.getElementById('summaryIncome').textContent = totalIncome.toLocaleString() + '원';
+            document.getElementById('summaryExpense').textContent = totalExpense.toLocaleString() + '원';
+            document.getElementById('summaryTotal').textContent = net.toLocaleString() + '원';
+            document.getElementById('summaryTotal').style.color = net >= 0 ? '#27ae60' : '#c0392b';
+        }
+        function setBudget() {
+            const budgetInput = document.getElementById('budgetInput');
+            const budget = parseInt(budgetInput.value);
+            if (!budget || budget <= 0) { alert('올바른 예산 금액을 입력해주세요.'); return; }
+            monthlyBudget = budget;
+            budgetInput.value = '';
+            updateAllAndSave();
+        }
+        function updateBudgetStatus() {
+            const container = document.getElementById('budgetStatus');
+            if (monthlyBudget <= 0) { container.style.display = 'none'; return; }
+            container.style.display = 'block';
+            const totalSpent = getMonthlyExpenses().reduce((s, e) => s + e.amount, 0);
+            const usage = totalSpent > 0 ? Math.round((totalSpent / monthlyBudget) * 100) : 0;
+            const remaining = monthlyBudget - totalSpent;
+            const now = new Date(), lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const remainingDays = lastDay - now.getDate() + 1;
+            const dailyRecommend = remaining > 0 && remainingDays > 0 ? Math.round(remaining / remainingDays) : 0;
+            const isOver = usage > 100;
+            container.className = `card budget-status ${isOver ? 'over-budget' : ''}`;
+            container.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><h4 style="margin: 0;">${isOver ? `예산 ${usage - 100}% 초과! 😱` : '예산 현황 📊'}</h4></div><div class="budget-progress"><div class="budget-progress-bar" style="width: ${Math.min(usage, 100)}%;"></div></div><div class="budget-info-grid"><div class="budget-info-item"><div class="budget-info-value ${usage > 100 ? 'negative' : ''}">${usage}%</div><div class="budget-info-label">사용률</div></div><div class="budget-info-item"><div class="budget-info-value ${remaining < 0 ? 'negative' : ''}">${remaining.toLocaleString()}원</div><div class="budget-info-label">남은 예산</div></div><div class="budget-info-item"><div class="budget-info-value">${dailyRecommend.toLocaleString()}원</div><div class="budget-info-label">일일 권장</div></div><div class="budget-info-item"><div class="budget-info-value">${monthlyBudget.toLocaleString()}원</div><div class="budget-info-label">설정 예산</div></div></div>`;
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.stats-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(tab + '-stats').classList.add('active');
+            renderActiveTab();
+        }
+        function renderActiveTab() {
+            const activeTab = document.querySelector('.tab-btn.active').getAttribute('onclick').match(/'(.*?)'/)[1];
+            if (activeTab === 'weekly') renderWeeklyStats();
+            else if (activeTab === 'monthly') renderMonthlyStats();
+            else if (activeTab === 'comparison') renderComparisonStats();
+        }
+        function renderWeeklyStats() {
+            const weeklyExpenses = getWeeklyExpenses();
+            const total = weeklyExpenses.reduce((s, e) => s + e.amount, 0);
+            document.getElementById('weekly-stats').innerHTML = createPercentageHTML(getCategoryStats(weeklyExpenses), total);
+        }
+        function renderMonthlyStats() {
+            const monthlyExpenses = getMonthlyExpenses();
+            const total = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
+            document.getElementById('monthly-stats').innerHTML = createPercentageHTML(getCategoryStats(monthlyExpenses), total);
+        }
+        function renderComparisonStats() {
+            const weeklyTotal = getWeeklyExpenses().reduce((s, e) => s + e.amount, 0), prevWeeklyTotal = getPreviousWeeklyExpenses().reduce((s, e) => s + e.amount, 0);
+            const monthlyTotal = getMonthlyExpenses().reduce((s, e) => s + e.amount, 0), prevMonthlyTotal = getPreviousMonthlyExpenses().reduce((s, e) => s + e.amount, 0);
+            document.getElementById('comparison-stats').innerHTML = `${createComparisonHTML('주간', weeklyTotal, prevWeeklyTotal)} ${createComparisonHTML('월간', monthlyTotal, prevMonthlyTotal)}`;
+        }
+        function createPercentageHTML(stats, total) {
+            const sorted = Object.entries(stats).sort(([,a], [,b]) => b.total - a.total);
+            if (sorted.length === 0) return '<p style="text-align:center;color:#888;padding:2rem 0;">해당 기간의 지출 내역이 없습니다.</p>';
+            const itemsHTML = sorted.map(([cat, s]) => {
+                const percent = total > 0 ? Math.round((s.total / total) * 100) : 0;
+                return `<div class="percentage-item"><div class="info"><span class="category-name"><span class="category-emoji">${expenseEmojis[cat]}</span> ${cat} (${s.count}건)</span><span class="percent">${percent}% (${s.total.toLocaleString()}원)</span></div><div class="progress-bar"><div class="progress-bar-fill" style="width: ${percent}%;"></div></div></div>`;
+            }).join('');
+            return `<div class="percentage-breakdown">${itemsHTML}</div>`;
+        }
+        function createComparisonHTML(label, current, previous) {
+            const diff = current - previous;
+            let percentText = previous > 0 ? `(${Math.round((diff/previous)*100)}%)` : '';
+            return `<div class="period-summary"><div class="summary-header"><h4>${label} 지출 비교</h4></div><p style="text-align:center; font-size: 1.5em; font-weight: 600;">${current.toLocaleString()}원</p><div class="summary-comparison">지난 기간보다 <span class="comparison-value ${diff > 0 ? 'negative' : (diff < 0 ? 'positive' : '')}">${Math.abs(diff).toLocaleString()}원</span> ${diff > 0 ? '더 썼어요.' : (diff < 0 ? '덜 썼어요.' : '변동 없어요.')} <span style="font-size:0.9em; opacity:0.8;">${percentText.replace('(-','-').replace('(','(+')}</span></div></div>`;
+        }
+        
+        const getMonthStart = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1);
+        const getWeekStart = (d = new Date()) => { const s = new Date(d); s.setDate(d.getDate() - d.getDay()); s.setHours(0,0,0,0); return s; };
+        const getMonthlyExpenses = () => expenses.filter(e => e.dateObj >= getMonthStart());
+        const getMonthlyIncomes = () => incomes.filter(i => i.dateObj >= getMonthStart());
+        const getWeeklyExpenses = () => expenses.filter(e => e.dateObj >= getWeekStart());
+        const getPreviousWeeklyExpenses = () => { const today = new Date(); const prevWeekEnd = new Date(today); prevWeekEnd.setDate(today.getDate() - today.getDay()); prevWeekEnd.setMilliseconds(-1); const prevWeekStart = new Date(prevWeekEnd); prevWeekStart.setDate(prevWeekEnd.getDate() - 6); prevWeekStart.setHours(0,0,0,0); return expenses.filter(e => e.dateObj >= prevWeekStart && e.dateObj <= prevWeekEnd); }
+        const getPreviousMonthlyExpenses = () => { const today = new Date(); const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1); const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0); prevMonthEnd.setHours(23,59,59,999); return expenses.filter(e => e.dateObj >= prevMonthStart && e.dateObj <= prevMonthEnd); }
+        const getCategoryStats = (list) => list.reduce((acc, e) => { if (!acc[e.category]) acc[e.category] = { total: 0, count: 0 }; acc[e.category].total += e.amount; acc[e.category].count++; return acc; }, {});
+        
+        function saveToStorage() { localStorage.setItem('assetTrackerDataV7', JSON.stringify({ expenses, incomes, monthlyBudget })); }
+        function loadFromStorage() {
+            const data = JSON.parse(localStorage.getItem('assetTrackerDataV7'));
+            if (data) {
+                expenses = (data.expenses || []).map(e => ({...e, dateObj: new Date(e.dateObj) }));
+                incomes = (data.incomes || []).map(i => ({...i, dateObj: new Date(i.dateObj) }));
+                monthlyBudget = data.monthlyBudget || 0;
+            }
+        }
+        function exportData() {
+            const dataStr = JSON.stringify({ expenses, incomes, monthlyBudget }, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `asset_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click(); URL.revokeObjectURL(url); showSaveStatus('데이터가 파일로 내보내졌습니다.');
+        }
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (!confirm('기존 데이터를 덮어쓰시겠습니까?')) return;
+                try {
+                    const data = JSON.parse(e.target.result);
+                    expenses = (data.expenses || []).map(exp => ({...exp, dateObj: new Date(exp.dateObj) }));
+                    incomes = (data.incomes || []).map(inc => ({...inc, dateObj: new Date(inc.dateObj) }));
+                    monthlyBudget = data.monthlyBudget || 0;
+                    updateAllAndSave(); showSaveStatus('데이터를 성공적으로 가져왔습니다.');
+                } catch (err) { showSaveStatus('파일을 읽는 중 오류가 발생했습니다.', 'error'); }
+            };
+            reader.readAsText(file); event.target.value = '';
+        }
+        function clearAllData() {
+            if (confirm('정말로 모든 데이터를 삭제하시겠습니까?')) {
+                expenses = []; incomes = []; monthlyBudget = 0;
+                updateAllAndSave(); showSaveStatus('모든 데이터가 삭제되었습니다.');
+            }
+        }
+        function showSaveStatus(msg, type = 'success') {
+            const el = document.getElementById('saveStatus');
+            el.textContent = msg; el.style.display = 'block';
+            el.style.background = type === 'success' ? '#d4edda' : '#f8d7da';
+            el.style.color = type === 'success' ? '#155724' : '#721c24';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function updateAllAndSave() { updateAll(); saveToStorage(); }
+        function updateAll() { displayExpenses(); displayIncomes(); updateMonthlySummary(); updateBudgetStatus(); renderActiveTab(); }
+        document.addEventListener('DOMContentLoaded', () => { loadFromStorage(); updateAll(); });
+    </script>
+</body>
+</html>
